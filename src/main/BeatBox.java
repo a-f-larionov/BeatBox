@@ -4,6 +4,10 @@ import javax.sound.midi.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.*;
 
 import static javax.sound.midi.Sequencer.LOOP_CONTINUOUSLY;
@@ -61,6 +65,21 @@ public class BeatBox {
         downTempo.setPreferredSize(new Dimension(100, 30));
         downTempo.addActionListener(new MyDownTempoListener());
         buttonBox.add(downTempo);
+
+        JButton clear = new JButton("Clear");
+        clear.setPreferredSize(new Dimension(100, 30));
+        clear.addActionListener(new MyClear());
+        buttonBox.add(clear);
+
+        JButton save = new JButton("Save");
+        save.setPreferredSize(new Dimension(100, 30));
+        save.addActionListener(new MySendListener());
+        buttonBox.add(save);
+
+        JButton load = new JButton("Load");
+        load.setPreferredSize(new Dimension(100, 30));
+        load.addActionListener(new MyLoadListener());
+        buttonBox.add(load);
 
         Box nameBox = new Box(BoxLayout.Y_AXIS);
         for (int i = 0; i < 16; i++) {
@@ -166,6 +185,79 @@ public class BeatBox {
         }//конец public void actionPerformed класса MyDownTempoListener
     }//конец public class MyDownTempoListener
 
+    public class MyClear implements ActionListener {
+        public void actionPerformed (ActionEvent a) {
+            sequencer.stop();
+            for (int i = 0; i < 16; i++) {
+                for (int j = 0; j < 16; j++) {
+                    (checkboxList.get(j + (16*i))).setSelected(false);
+                }
+            }
+        }
+    }
+    public class MySendListener implements ActionListener {
+        public void actionPerformed (ActionEvent a) {
+            boolean[] checkboxState = new boolean[256];
+            for (int i = 0; i < 256; i++) {
+                JCheckBox check = (JCheckBox) checkboxList.get(i);
+                if (check.isSelected()) {
+                    checkboxState[i] = true;
+                }
+            }
+            try {
+                JFileChooser saveFile = new JFileChooser();
+                saveFile.showOpenDialog(theFrame);
+                BufferedWriter writer = new BufferedWriter(new FileWriter(saveFile.getSelectedFile()));
+                for (int i = 0; i < 256; i++) {
+                    if (checkboxState[i]) {
+                        writer.write(1);
+                    } else {
+                        writer.write(0);
+                    }
+                }
+                writer.close();
+            } catch (Exception e) {e.printStackTrace();}
+        }
+    }
+
+    public class MyLoadListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            sequencer.stop();
+            for (int i = 0; i < 16; i++) {
+                for (int j = 0; j < 16; j++) {
+                    (checkboxList.get(j + (16*i))).setSelected(false);
+                }
+            }
+            try {
+                JFileChooser fileOpen = new JFileChooser();
+                fileOpen.showOpenDialog(theFrame);
+                BufferedReader reader = new BufferedReader(new FileReader(fileOpen.getSelectedFile()));
+                String line = null;
+                String s = null;
+                char[] temp = new char[256];
+                while ((line = reader.readLine()) != null) {
+                    s = line;
+                }
+                reader.close();
+                temp = s.toCharArray();
+                for (int i = 0; i < 16; i++) {
+                    for (int j = 0; j < 16; j++) {
+                        switch (temp[j+(16*i)]) {
+                            case 0: {
+                                checkboxList.get(j+(16*i)).setSelected(false);
+                                break;
+                            }
+                            case 1: {
+                                checkboxList.get(j+(16*i)).setSelected(true);
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ex) {ex.printStackTrace();}
+
+        }
+    }
     public void makeTracks(int[] list) {
         //Метод создает собития для одного инструмента за каждый проход цикла для всех 16 тактов
         //Можно получить int[] для Bass Drum, и каждый элемент массива будет содержать либо клавишу этого инструмента, либо 0.
